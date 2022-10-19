@@ -12,8 +12,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.douglas.dscatalog.dto.CategoryDTO;
 import com.douglas.dscatalog.dto.ProductDTO;
+import com.douglas.dscatalog.entities.Category;
 import com.douglas.dscatalog.entities.Product;
+import com.douglas.dscatalog.repositories.CategoryRepository;
 import com.douglas.dscatalog.repositories.ProductRepository;
 import com.douglas.dscatalog.services.exceptions.DatabaseException;
 import com.douglas.dscatalog.services.exceptions.ResourceNotFoundException;
@@ -23,6 +26,9 @@ public class ProductService {
 	
 	@Autowired
 	private ProductRepository repository;
+	
+	@Autowired
+	private CategoryRepository categoryRepository;
 	
 	@Transactional(readOnly = true)
 	public Page<ProductDTO> findAllPaged(PageRequest pageRequest) {
@@ -40,7 +46,7 @@ public class ProductService {
 	@Transactional
 	public ProductDTO insert(ProductDTO dto) {
 		Product entity = new Product();
-		//entity.setName(dto.getName());
+		CopyDtoToEntity(dto, entity);
 		entity = repository.save(entity);
 		return new ProductDTO(entity);
 	}
@@ -50,7 +56,7 @@ public class ProductService {
 		try {
 			@SuppressWarnings("deprecation")
 			Product entity = repository.getOne(id);
-			//entity.setName(dto.getName());
+			CopyDtoToEntity(dto, entity);
 			entity = repository.save(entity);
 			return new ProductDTO(entity);
 		} catch (EntityNotFoundException e) {
@@ -67,6 +73,20 @@ public class ProductService {
 		catch (DataIntegrityViolationException e) {
 			throw new DatabaseException("Integraty violation");
 		}
+	}
+	
+	private void CopyDtoToEntity(ProductDTO dto, Product entity) {	
+		entity.setName(dto.getName());
+		entity.setDescription(dto.getDescription());
+		entity.setDate(dto.getDate());
+		entity.setImgUrl(dto.getImgUrl());
+		entity.setPrice(dto.getPrice());
 		
+		entity.getCategories().clear();
+		for (CategoryDTO catDto : dto.getCategories()) {
+			@SuppressWarnings("deprecation")
+			Category category = categoryRepository.getOne(catDto.getId());
+			entity.getCategories().add(category);
+		}
 	}
 }
